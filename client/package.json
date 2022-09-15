@@ -1,9 +1,12 @@
 {
-  "source": "index.html",
+  "source": "src/index.html",
   "scripts": {
     "watch": "parcel watch"
   },
   "devDependencies": {
     "parcel": "^2.7.0"
+  },
+  "dependencies": {
+    "@parcel/service-worker": "^2.7.0"
   }
 }

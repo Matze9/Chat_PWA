@@ -1,0 +1,18 @@
+* {
+  margin: 0;
+}
+
+.header {
+  display: flex;
+  background-color: black;
+  color: aliceblue;
+}
+
+.conversations {
+  display: flex;
+  flex-direction: column;
+}
+
+.userImage {
+  width: 50px;
+}
