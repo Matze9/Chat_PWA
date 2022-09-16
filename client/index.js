@@ -6,7 +6,7 @@ function getUsers() {
       data.forEach((user) => {
         var img = document.createElement("img");
         img.src = user.image;
-        img.className = "userImage";
+        img.className = "circle responsive-img thumbnailImage";
         var src = document.getElementById("images");
         src.appendChild(img);
       });

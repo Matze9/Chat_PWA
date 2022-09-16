@@ -1,0 +1,8 @@
+.thumbnailImage {
+  width: 80px;
+}
+
+.personsOverviewContainer {
+  display: flex;
+  flex-direction: column;
+}
