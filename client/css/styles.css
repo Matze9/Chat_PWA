@@ -6,3 +6,132 @@
   display: flex;
   flex-direction: column;
 }
+
+.page {
+  margin: auto;
+  max-width: 900px;
+}
+
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 100vh; /*or use calc(100vh - header_height)*/
+}
+
+.header {
+  display: flex;
+  height: 100%;
+  justify-content: center;
+}
+
+.headerContent {
+  display: flex;
+  width: 80%;
+  justify-content: space-around;
+  height: 100%;
+}
+
+.welcomeText {
+  font-size: x-large;
+}
+
+.currentUserImageContainer {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.currentUserImage {
+  max-height: 80%;
+}
+
+.rightcontentContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 90%;
+  border: 1px solid black;
+}
+
+.conversationBoxContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 80%;
+  position: relative;
+
+  border: 1px solid black;
+}
+
+.conversationBoxScrollable {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: scroll;
+}
+
+.messageBoxContainer {
+  display: flex;
+  width: 100%;
+  height: 20%;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid black;
+}
+
+.singleMessageBox {
+  display: flex;
+  flex-direction: column;
+  height: 100px;
+  padding: 20px;
+  margin: 20px;
+  background-color: aliceblue;
+}
+
+.contactCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
+  margin-top: 50px;
+  box-shadow: 0 0.2rem 0.25rem rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  color: aliceblue;
+  font-size: large;
+}
+
+.textinputForm {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  height: 100%;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.messageTextArea {
+  height: 70%;
+  max-width: 500px;
+  border-radius: 10px;
+  color: blueviolet;
+  border: none;
+  padding: 20px;
+
+  resize: none;
+}
+
+.sendButton {
+  width: 60%;
+}
+
+textarea::placeholder {
+  color: #fff;
+}

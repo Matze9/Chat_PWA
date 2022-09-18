@@ -1,10 +1,10 @@
-const VERSION = 7;
+const VERSION = 8;
 const ASSETS_CACHE_PREFIX = "pwa-assets";
 const ASSETS_CACHE_NAME = `${ASSETS_CACHE_PREFIX}-${VERSION}`;
 const ASSET_URLS = [
   "/",
   //  "css/styles.css",
-  "index.js",
+  // "index.js",
   "css/materialize.min.css",
   "/images/daniel.jpg",
   "/images/manuel.jpg",
@@ -16,7 +16,7 @@ self.addEventListener("install", function (event) {
   event.waitUntil(
     caches.open(ASSETS_CACHE_NAME).then((cache) => cache.addAll(ASSET_URLS))
   );
-  console.log("Service Worker was installed - note from the worker");
+  console.log("Service Worker was installed -- note from the worker");
 });
 
 self.addEventListener("fetch", function (event) {
