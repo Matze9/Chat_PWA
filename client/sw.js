@@ -1,53 +1,49 @@
-const VERSION = 9;
+import { manifest, version } from "@parcel/service-worker";
+
+const VERSION = 21;
 const ASSETS_CACHE_PREFIX = "pwa-assets";
 const ASSETS_CACHE_NAME = `${ASSETS_CACHE_PREFIX}-${VERSION}`;
-const ASSET_URLS = [
-  "/",
-  //  "css/styles.css",
-  // "index.js",
-  "css/materialize.min.css",
-  //"/images/daniel.jpg",
-  //"/images/manuel.jpg",
-  //"/images/guenther.jpg",
-  // "/images/franz.jpg",
-];
+const ASSET_URLS = ["/", ...manifest];
 
-self.addEventListener("install", function (event) {
-  event.waitUntil(
-    caches.open(ASSETS_CACHE_NAME).then((cache) => cache.addAll(ASSET_URLS))
-  );
-  console.log("Service Worker was installed -- note from the worker");
-});
+async function install() {
+  const cache = await caches.open(ASSETS_CACHE_NAME);
+  await cache.addAll(ASSET_URLS);
+}
+addEventListener("install", (e) => e.waitUntil(install()));
 
 self.addEventListener("fetch", function (event) {
-  self.addEventListener("fetch", function (event) {
-    const { request } = event;
-    const path = new URL(request.url).pathname;
+  const { request } = event;
+  const path = new URL(request.url).pathname;
 
-    if (path.startsWith("/images")) {
-      event.respondWith(
-        caches.match(request).then((cacheResponse) => {
-          return (
-            cacheResponse ||
-            fetch(request).then((networkResponse) => {
-              return caches.open("images").then((cache) => {
-                cache.put(request, networkResponse.clone());
-                console.log("network response");
-                return networkResponse;
-              });
-            })
-          );
-        })
-      );
-    }
-  });
+  if (path.startsWith("/images")) {
+    event.respondWith(
+      caches.match(request).then((cacheResponse) => {
+        return (
+          cacheResponse ||
+          fetch(request).then((networkResponse) => {
+            return caches.open("images").then((cache) => {
+              cache.put(request, networkResponse.clone());
+              console.log("network response");
+              return networkResponse;
+            });
+          })
+        );
+      })
+    );
+  }
 
-  // event.respondWith(
-  //   caches
-  //     .match(event.request)
-  //     .then((cachedResponse) => cachedResponse || fetch(event.request))
-  // );
+  if (ASSET_URLS.includes(path)) {
+    event.respondWith(
+      caches.open(ASSETS_CACHE_NAME).then((cache) => cache.match(event.request))
+    );
+  }
 });
+
+// event.respondWith(
+//   caches
+//     .match(event.request)
+//     .then((cachedResponse) => cachedResponse || fetch(event.request))
+// );
 
 self.addEventListener("activate", function (event) {
   event.waitUntil(

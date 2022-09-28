@@ -1,7 +1,8 @@
-function user(username, fullname, image) {
+function user(username, fullname, image, conversationID) {
   this.username = username;
   this.fullname = fullname;
   this.image = image;
+  this.conversationID = conversationID;
 }
 
 function conversation(id, participants) {
@@ -16,8 +17,13 @@ var currentUser;
 this.currentUser = new user(
   "guenther",
   "Günther Jauch",
-  "/images/guenther.jpg"
+  "/images/guenther.jpg",
+  0
 );
+
+function contactCardClickedHandler() {
+  console.log("ONCLICK");
+}
 
 // Load current user to DOM
 // document.getElementById("currentUserName").textContent = currentUser.username;
@@ -44,12 +50,23 @@ fetch("http://[::1]:5000/conversations?user=guenther")
       .then((response) => response.json())
       .then((data) => {
         data.forEach((user) => {
+          console.log("active convers", activeConversations);
+
+          var conversationID;
+          activeConversations.forEach((conv) => {
+            if (conv.participants.includes(user.username)) {
+              conversationID = conv.id;
+            }
+          });
+
+          // Render active conversations to the screen
           if (
             user.username !== currentUser.username &&
             activeConversationUsers.includes(user.username)
           ) {
-            var contactCard = document.createElement("div");
+            var contactCard = document.createElement("a");
             contactCard.className = "section contactCard";
+            contactCard.href = "#" + conversationID;
 
             var divider = document.createElement("div");
             divider.className = "divider";
@@ -65,45 +82,49 @@ fetch("http://[::1]:5000/conversations?user=guenther")
             contactCard.appendChild(img);
             contactCard.appendChild(contactName);
             contactCard.appendChild(divider);
-            contactCard.onclick = function () {
-              getConversationByContactName(user.username);
-            };
+
             src.appendChild(contactCard);
           }
         });
       });
-  });
+  })
+  .catch((err) => console.log("Failed to fetch active conversations", err));
 
-// Load specific conversation
-function getConversationByContactName(contactName) {
-  var conversationID;
+// Function to Load specific conversation
+// function getConversationByContactName(contactName) {
+//   var conversationID;
 
-  activeConversations.forEach((conv) => {
-    if (conv.participants.includes(contactName)) {
-      conversationID = conv.id;
-      currentConversationID = conv.id;
-    }
-  });
+//   activeConversations.forEach((conv) => {
+//     if (conv.participants.includes(contactName)) {
+//       conversationID = conv.id;
+//       currentConversationID = conv.id;
+//     }
+//   });
 
-  fetch("/conversations/" + conversationID + "/messages")
-    .then((response) => response.json())
-    .then((data) => {
-      document.getElementById("messageinputForm").hidden = false;
+//   fetch("/conversations/" + conversationID + "/messages")
+//     .then((response) => response.json())
+//     .then((data) => {
+//       document.getElementById("messageinputForm").hidden = false;
 
-      var src = document.getElementById("conversationBoxScrollable");
-      src.replaceChildren();
+//       var src = document.getElementById("conversationBoxScrollable");
+//       src.replaceChildren();
 
-      data.forEach((message) => {
-        addConversationBox(message.from, message.message);
-      });
-    });
-}
+//       data.forEach((message) => {
+//         addConversationBox(message.from, message.message);
+//       });
+//     });
+// }
 
+// Function to send message in conversation
 function sendMessage() {
   var messageText = document.getElementById("textToSend").value;
-  console.log(messageText);
+  console.log("URL: ", document.URL);
+
+  var currentConversationID = document.URL.split("#")[1];
 
   const data = { from: currentUser.username, message: messageText };
+
+  console.log("Data to send ", data);
 
   fetch("/conversations/" + currentConversationID + "/messages", {
     method: "POST", // or 'PUT'

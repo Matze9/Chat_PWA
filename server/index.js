@@ -5,7 +5,7 @@ const fastify = require("fastify")({
 const path = require("path");
 
 fastify.register(require("@fastify/static"), {
-  root: path.join(__dirname, "..", "client"),
+  root: path.join(__dirname, "..", "client", "dist"),
   decorateReply: false,
 });
 
