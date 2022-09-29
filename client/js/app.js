@@ -2,10 +2,12 @@ import { createHashHistory } from "history";
 let history = createHashHistory();
 let location = history.location;
 
+// Load Conversation from server
 function loadConversation(conversationID) {
   fetch("/conversations/" + conversationID + "/messages")
     .then((response) => response.json())
     .then((data) => {
+      localStorage.setItem("lastConv", conversationID);
       document.getElementById("messageinputForm").hidden = false;
 
       var src = document.getElementById("conversationBoxScrollable");
@@ -21,7 +23,13 @@ var conversationID = location.pathname;
 if (conversationID !== "/") {
   loadConversation(conversationID);
 } else {
-  //TODO: Load last chat from store
+  //Load last chat from the local storage
+  var lastChat = localStorage.getItem("lastConv");
+  if (lastChat !== null) {
+    var currentUrl = window.location.href;
+    window.location.href = currentUrl + "#" + lastChat;
+    loadConversation(lastChat);
+  }
 }
 
 history.listen(({ action, location }) => {
@@ -34,6 +42,7 @@ history.listen(({ action, location }) => {
   loadConversation(conversationID);
 });
 
+//Register Service Worker
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
     .register(new URL("../sw.js", import.meta.url), { type: "module" })
