@@ -21,9 +21,96 @@ this.currentUser = new user(
   0
 );
 
-function contactCardClickedHandler() {
-  console.log("ONCLICK");
-}
+const INDEXEDDB = "DB";
+
+// -------------------------------CREATE DB----
+const req = indexedDB.open(INDEXEDDB, 1);
+
+req.onupgradeneeded = (event) => {
+  console.log("Create DB");
+  const db = event.target.result;
+  console.log("create Users Object store!");
+  db.createObjectStore("users", {
+    keyPath: "id",
+  });
+  const objectStoreConversations = db.createObjectStore("conversations", {
+    keyPath: "id",
+  });
+
+  //Add users to Store
+  fetch("http://[::1]:5000/users")
+    .then((response) => response.json())
+    .then((data) => {
+      console.log("Add users to DB ", data);
+
+      const openRequest = indexedDB.open(INDEXEDDB, 1);
+
+      openRequest.onsuccess = function () {
+        const transaction = openRequest.result.transaction(
+          "users",
+          "readwrite"
+        );
+        const store = transaction.objectStore("users");
+        const addRequest = store.put({
+          id: "http://[::1]:5000/users",
+          users: JSON.stringify(data),
+        });
+
+        addRequest.onsuccess = function () {
+          console.log("Entry successfully added!");
+        };
+
+        addRequest.onerror = function () {
+          console.log("Something went wrong!");
+        };
+      };
+    });
+};
+
+// ----------------------------DB CEATED
+
+// const request = indexedDB.open(INDEXEDDB, 1);
+
+// request.onupgradeneeded = (event) => {
+//   const db = event.target.result;
+//   db.createObjectStore("users", {
+//     keyPath: "id",
+//   });
+//   const objectStoreConversations = db.createObjectStore("conversations", {
+//     keyPath: "id",
+//   });
+
+//   //Add users to Store
+//   fetch("http://[::1]:5000/users")
+//     .then((response) => response.json())
+//     .then((data) => {
+//       const openRequest = indexedDB.open(INDEXEDDB, 1);
+
+//       openRequest.onsuccess = function () {
+//         const transaction = openRequest.result.transaction(
+//           "users",
+//           "readwrite"
+//         );
+//         const store = transaction.objectStore("users");
+//         const addRequest = store.put({
+//           id: "http://[::1]:5000/users",
+//           users: JSON.stringify(data),
+//         });
+
+//         addRequest.onsuccess = function () {
+//           console.log("Entry successfully added!");
+//         };
+
+//         addRequest.onerror = function () {
+//           console.log("Something went wrong!");
+//         };
+//       };
+//     });
+// };
+
+// request.onsuccess = (event) => {
+//   console.log("Upgrade successful!");
+// };
 
 // Load current user to DOM
 // document.getElementById("currentUserName").textContent = currentUser.username;
@@ -46,12 +133,13 @@ fetch("http://[::1]:5000/conversations?user=guenther")
       });
     });
 
+    //debugger;
     fetch("http://[::1]:5000/users")
       .then((response) => response.json())
       .then((data) => {
-        data.forEach((user) => {
-          console.log("active convers", activeConversations);
+        console.log("The data http://[::1]:5000/users got: ", data);
 
+        data.forEach((user) => {
           var conversationID;
           activeConversations.forEach((conv) => {
             if (conv.participants.includes(user.username)) {
@@ -88,7 +176,7 @@ fetch("http://[::1]:5000/conversations?user=guenther")
         });
       });
   })
-  .catch((err) => console.log("Failed to fetch active conversations", err));
+  .catch((err) => console.log("Failed to fetch users: ", err));
 
 // Function to Load specific conversation
 // function getConversationByContactName(contactName) {
@@ -118,16 +206,13 @@ fetch("http://[::1]:5000/conversations?user=guenther")
 // Function to send message in conversation
 function sendMessage() {
   var messageText = document.getElementById("textToSend").value;
-  console.log("URL: ", document.URL);
 
   var currentConversationID = document.URL.split("#")[1];
 
   const data = { from: currentUser.username, message: messageText };
 
-  console.log("Data to send ", data);
-
   fetch("/conversations/" + currentConversationID + "/messages", {
-    method: "POST", // or 'PUT'
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
@@ -136,18 +221,26 @@ function sendMessage() {
     .then((response) => response.json())
     .then((data) => {
       console.log("Success:", data);
-      addConversationBox(data.from, data.message);
+      addConversationBox(data.from, data.message, "black", "white");
     })
     .catch((error) => {
       console.error("Error:", error);
+      addConversationBox(
+        "Caution!",
+        "You have no internet connection :(",
+        "white",
+        "red"
+      );
     });
 }
 
-function addConversationBox(from, message) {
+function addConversationBox(from, message, fontcolor, boxColor) {
   var src = document.getElementById("conversationBoxScrollable");
 
   var messageBox = document.createElement("div");
   messageBox.className = "singleMessageBox";
+  messageBox.style.color = fontcolor;
+  messageBox.style.backgroundColor = boxColor;
 
   var messageHeader = document.createElement("div");
   messageHeader.textContent = from;

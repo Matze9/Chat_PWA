@@ -25,10 +25,17 @@ if (conversationID !== "/") {
 } else {
   //Load last chat from the local storage
   var lastChat = localStorage.getItem("lastConv");
-  if (lastChat !== null) {
+  if (lastChat !== null && lastChat !== "-1") {
     var currentUrl = window.location.href;
     window.location.href = currentUrl + "#" + lastChat;
     loadConversation(lastChat);
+  } else {
+    console, log("Check if lastChat === -1");
+    if (lastChat !== "-1") {
+      console.log("reload");
+      localStorage.setItem("lastConv", "-1");
+      // window.location.reload();
+    }
   }
 }
 
