@@ -1,15 +1,136 @@
 import { manifest, version } from "@parcel/service-worker";
 
 const VERSION = version;
+
 const ASSETS_CACHE_PREFIX = "pwa-assets";
 const ASSETS_CACHE_NAME = `${ASSETS_CACHE_PREFIX}-${VERSION}`;
-const ASSET_URLS = ["/", ...manifest];
+const ASSET_URLS = [
+  "/",
+  ...manifest,
+  // "/images/guenther.jpg",
+  // "images/daniel.jpg",
+  // "images/manuel.jpg",
+];
 
 const INDEXEDDB = "DB";
+const DBVERSION = 2;
+const USERSTORE = "users";
+const CONVERSATIONSTORE = "conversations";
+
+// Function to open or create IndexedDB
+async function openDB(callback) {
+  const openRequest = self.indexedDB.open(INDEXEDDB, DBVERSION);
+
+  openRequest.onerror = function (event) {
+    console.log(
+      "Application isn't allowed to use IndexedDB?!" + event.target.errorCode
+    );
+  };
+
+  // Create indexedDB if needed
+  openRequest.onupgradeneeded = function (event) {
+    db = event.target.result;
+
+    if (!db.objectStoreNames.contains(USERSTORE)) {
+      // if there's no store of, create a new object store
+      db.createObjectStore(USERSTORE, { keyPath: "key" });
+
+      //Add users to Store
+      fetch("http://[::1]:5000/users")
+        .then((response) => response.json())
+        .then((data) => {
+          openDB(() =>
+            addToStore(
+              "http://[::1]:5000/users",
+              USERSTORE,
+              JSON.stringify(data)
+            )
+          );
+        })
+        .catch((err) => {
+          console.log("Failed to fetch users to add them to the store!", err);
+        });
+    }
+    if (!db.objectStoreNames.contains(CONVERSATIONSTORE)) {
+      // if there's no store, create a new object store
+      db.createObjectStore(CONVERSATIONSTORE, { keyPath: "key" });
+
+      //Add Günthers active conversations to Store
+      fetch("http://[::1]:5000/conversations?user=guenther")
+        .then((response) => response.json())
+        .then((data) => {
+          openDB(() =>
+            addToStore(
+              "http://[::1]:5000/conversations?user=guenther",
+              CONVERSATIONSTORE,
+              JSON.stringify(data)
+            )
+          );
+        })
+        .catch((err) => {
+          console.log(
+            "Failed to fetch Günthers last conversations to add them to the store!",
+            err
+          );
+        });
+    }
+  };
+
+  openRequest.onsuccess = function (event) {
+    db = event.target.result;
+    if (callback) {
+      callback();
+    }
+  };
+}
+
+// Function to add entries into the IndexedDB
+async function addToStore(key, storeName, value) {
+  // start a transaction
+  const transaction = db.transaction(storeName, "readwrite");
+
+  // create an object store
+  const store = transaction.objectStore(storeName);
+
+  // add key and value to the store
+  const request = store.put({ key: key, value: value });
+  request.onsuccess = function () {};
+  request.onerror = function () {
+    console.log("Error did not save to store", request.error);
+  };
+
+  transaction.onerror = function (event) {
+    console.log("trans failed", event);
+  };
+}
+
+//Function to get data from Store
+async function getFromStore(key, storeName, callback) {
+  // start a transaction
+  const transaction = db.transaction(storeName, "readwrite");
+  // create an object store
+  const store = transaction.objectStore(storeName);
+
+  // get key and value from the store
+  const request = store.get(key);
+
+  request.onsuccess = function (event) {
+    if (callback) {
+      callback(event.target.result);
+    }
+  };
+  request.onerror = function () {
+    console.log("Error did not read to store", request.error);
+  };
+
+  transaction.onerror = function (event) {
+    console.log("trans failed", event);
+  };
+}
 
 //-------------------------------------------------------INSTALL---------------------------------------------------------
 async function install() {
-  console.log("Install event");
+  openDB();
 
   const cache = await caches.open(ASSETS_CACHE_NAME);
   await cache.addAll(ASSET_URLS);
@@ -21,7 +142,7 @@ self.addEventListener("fetch", function (event) {
   const { request } = event;
   const path = new URL(request.url).pathname;
 
-  // Cache First bei Images, Netzwerkanfragen zusätzlich im Cache ablegen
+  // Cache first for images, also store networkrequests in Cache
   if (path.startsWith("/images")) {
     event.respondWith(
       caches.match(request).then((cacheResponse) => {
@@ -39,48 +160,23 @@ self.addEventListener("fetch", function (event) {
     );
   }
 
-  //TODO: Network first bei laden von Conversations, Responses bei Erfolg zusätzlich in der IndexedDB ablegen. Wenn kein Netzwerk, Chats aus der DB laden.
-
+  // Use network first approach to load conversations, also store the responses in the indexedDB.
   if (path.includes("/conversations") && request.method !== "POST") {
-    var conversationID = path.split("/")[2];
-
     var p = new Promise(function (resolve, reject) {
-      resolve(
-        fetch(event.request.url).then((fetchedResponse) => {
-          return fetchedResponse
-            .json()
-            .then((res) => {
-              // Put loaded conversations in DB before returning them.
-              const openRequest = indexedDB.open(INDEXEDDB, 1);
-              var fetchedResponsecopy = res;
-              openRequest.onsuccess = function () {
-                const transaction = openRequest.result.transaction(
-                  "conversations",
-                  "readwrite"
-                );
-                const store = transaction.objectStore("conversations");
-                const getRequest = store.put({
-                  conversation: JSON.stringify(fetchedResponsecopy),
-                  id: path,
-                  something: "HE",
-                });
-
-                getRequest.onsuccess = function () {
-                  //   console.log("Put conversation in DB - Success");
-                };
-              };
-
-              openRequest.onerror = (event) => {
-                console.log("ERROR", event);
-              };
-              return res;
-            })
-            .catch((err) => {
-              // If no Internet - return conversations stored in the DB
-              console.log("Fetching from Server failed!!!!!!!!!");
-            });
+      fetch(event.request.url)
+        .then((fetchedResponse) => {
+          return fetchedResponse.json().then((res) => {
+            if (res !== undefined) {
+              openDB(() =>
+                addToStore(request.url, CONVERSATIONSTORE, JSON.stringify(res))
+              );
+            }
+            resolve(res);
+          });
         })
-      );
+        .catch((err) => {
+          reject();
+        });
     });
 
     event.respondWith(
@@ -92,86 +188,47 @@ self.addEventListener("fetch", function (event) {
           });
         })
         .catch((err) => {
-          console.log("Fetching failed, here should the indexDB be placed!");
-
           const responseWithIndexedDB = new Promise(function (resolve, reject) {
-            const openRequest = indexedDB.open(INDEXEDDB, 1);
-
-            openRequest.onsuccess = function () {
-              const transaction = openRequest.result.transaction(
-                "conversations",
-                "readonly"
-              );
-              const store = transaction.objectStore("conversations");
-              const getRequest = store.get(path);
-
-              getRequest.onsuccess = function () {
-                resolve(getRequest.result);
-              };
-
-              getRequest.onerror = function () {
-                console.log(
-                  "Something went wrong when loading Conversations from indexedDB!"
-                );
-              };
-            };
-
-            openRequest.onerror = (event) => {
-              console.log("ERROR", event);
-            };
+            getFromStore(request.url, CONVERSATIONSTORE, (conversationData) => {
+              resolve(conversationData);
+            });
           });
 
           return responseWithIndexedDB.then((res) => {
-            console.log("I am goin to respond with: ", res.conversation);
-            return new Response(res.conversation, {
+            return new Response(res.value, {
               status: 200,
-              statusText: "Get all users Response from the Service Worker!",
+              statusText: "Got conversations from the IndexedDB!",
             });
           });
         })
     );
   }
 
-  //TODO: User aus der indexedDB laden
-
+  //Load Users from indexedDB
   if (path.includes("/users")) {
     const loadUsersFromDB = new Promise((resolve, reject) => {
-      const openRequest = indexedDB.open(INDEXEDDB, 1);
-
-      openRequest.onsuccess = function () {
-        const transaction = openRequest.result.transaction("users", "readonly");
-        const store = transaction.objectStore("users");
-        const getRequest = store.get("http://[::1]:5000/users");
-
-        getRequest.onsuccess = function () {
-          resolve(getRequest.result);
-        };
-
-        getRequest.onerror = function () {
-          console.log(
-            "Something went wrong when loading users from indexedDB!"
-          );
-        };
-      };
-
-      openRequest.onerror = (event) => {
-        console.log("ERROR", event);
-      };
+      openDB(() => {
+        getFromStore("http://[::1]:5000/users", USERSTORE, (userData) => {
+          resolve(userData.value);
+        });
+      });
     });
 
     event.respondWith(
-      loadUsersFromDB.then((users) => {
-        return new Response(users.users, {
-          status: 200,
-          statusText: "Get all users Response from the Service Worker!",
-        });
-      })
+      loadUsersFromDB
+        .then((users) => {
+          return new Response(users, {
+            status: 200,
+            statusText: "Get users from the indexedDB!",
+          });
+        })
+        .catch((err) => {
+          console.log("Error in Promise - get users! ", err);
+        })
     );
   }
 
-  //TODO:: Conversations vom Günther auch in der DB lagern und mit Network first zurückgeben
-
-  //TODO: Nicht immer den Cache öffnen - erst fragen ob die App-Shell angefragt wird
+  // Response with ressources from the precache
   if (ASSET_URLS.includes(path)) {
     event.respondWith(
       caches.open(ASSETS_CACHE_NAME).then((cache) => cache.match(event.request))
@@ -179,6 +236,7 @@ self.addEventListener("fetch", function (event) {
   }
 });
 
+//---------------------------------------------------ACTIVATE-----------------------------------
 self.addEventListener("activate", function (event) {
   event.waitUntil(
     // Bekommt ein Promise - Da die Übergebene Funktion gleich aufgerufen wird, ist ihr Rückgabewert der Übergebene Parameter
@@ -197,4 +255,5 @@ self.addEventListener("activate", function (event) {
       );
     })()
   );
+  event.waitUntil(self.clients.claim());
 });

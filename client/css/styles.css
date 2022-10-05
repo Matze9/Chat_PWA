@@ -5,6 +5,14 @@ body {
   overflow: hidden;
 }
 
+.activeChat {
+  background-color: #65a58f;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.05);
+
+  box-shadow: 1px 1px 12px rgba(0, 0, 0, 0.1);
+}
+
 .thumbnailImage {
   width: 80px;
 }
@@ -104,10 +112,15 @@ body {
   align-items: center;
 }
 
+.messageBox {
+  display: flex;
+  width: 100%;
+}
+
 .singleMessageBox {
   display: flex;
   flex-direction: column;
-  height: 100px;
+  width: 50%;
   padding: 20px;
   margin: 20px;
   background-color: aliceblue;
@@ -152,4 +165,55 @@ body {
 
 textarea::placeholder {
   color: #fff;
+}
+
+.speech-bubble-left {
+  position: relative;
+  background: #418796;
+  border-radius: 0.4em;
+  margin-top: 45px;
+  width: 50%;
+  padding: 15px;
+  color: white;
+}
+
+.speech-bubble-left:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border: 43px solid transparent;
+  border-bottom-color: #418796;
+  border-top: 0;
+  border-left: 0;
+  margin-left: -21.5px;
+  margin-top: -20px;
+}
+
+.speech-bubble-right {
+  position: relative;
+  background: #419678;
+  border-radius: 0.4em;
+  margin-top: 45px;
+  width: 50%;
+  right: 0;
+  padding: 15px;
+  color: white;
+}
+
+.speech-bubble-right:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border: 43px solid transparent;
+  border-bottom-color: #419678;
+  border-top: 0;
+  border-right: 0;
+  margin-left: -21.5px;
+  margin-top: -20px;
 }

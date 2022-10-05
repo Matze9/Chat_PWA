@@ -2,12 +2,35 @@ import { createHashHistory } from "history";
 let history = createHashHistory();
 let location = history.location;
 
-// Load Conversation from server
+//Register Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register(new URL("../sw.js", import.meta.url), { type: "module" })
+    .then((reg) => {
+      console.log("Service Worker registered!", reg);
+    })
+    .catch((err) => console.log("No Service Worker registered!", err));
+}
+
+// Load Conversation
 function loadConversation(conversationID) {
   fetch("/conversations/" + conversationID + "/messages")
     .then((response) => response.json())
     .then((data) => {
+      var currentConversation = localStorage.getItem("lastConv");
+      var inactive = document.getElementById("ID:" + currentConversation);
+      if (inactive !== null) {
+        inactive.className = "section contactCard";
+      }
+
       localStorage.setItem("lastConv", conversationID);
+
+      var active = document.getElementById("ID:" + conversationID);
+      if (active !== null) {
+        active.classList.add("activeChat");
+      }
+      localStorage.setItem("lastConv", conversationID);
+
       document.getElementById("messageinputForm").hidden = false;
 
       var src = document.getElementById("conversationBoxScrollable");
@@ -16,6 +39,9 @@ function loadConversation(conversationID) {
       data.forEach((message) => {
         addConversationBox(message.from, message.message);
       });
+    })
+    .catch((err) => {
+      console.log("Loading conversations failed!", err);
     });
 }
 
@@ -29,30 +55,10 @@ if (conversationID !== "/") {
     var currentUrl = window.location.href;
     window.location.href = currentUrl + "#" + lastChat;
     loadConversation(lastChat);
-  } else {
-    console, log("Check if lastChat === -1");
-    if (lastChat !== "-1") {
-      console.log("reload");
-      localStorage.setItem("lastConv", "-1");
-      // window.location.reload();
-    }
   }
 }
 
 history.listen(({ action, location }) => {
-  console.log(
-    `The current URL is ${location.pathname}${location.search}${location.hash}`
-  );
-
-  console.log("Pathname:", location.pathname);
   var conversationID = location.pathname;
   loadConversation(conversationID);
 });
-
-//Register Service Worker
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .register(new URL("../sw.js", import.meta.url), { type: "module" })
-    .then((reg) => console.log("Service Worker registered!", reg))
-    .catch((err) => console.log("No Service Worker registered!", err));
-}
